@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>福爾摩沙大航海：開港通商生存戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-parchment: #f4ebd9;
+            --ink-brown: #3e2723;
+            --vintage-green: #22543d;
+            --vintage-red: #9b2c2c;
+            --vintage-gold: #c68a1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1c2e38;
+            color: #3e2723;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* 羊皮紙質感視窗 */
+        .parchment-panel {
+            background: linear-gradient(155deg, #fffdf7 0%, #f5ead4 100%);
+            border: 3px solid #7d5a44;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 0 20px rgba(198, 138, 30, 0.14);
+            border-radius: 1.25rem;
+        }
+
+        /* 立體復古按鈕 */
+        .btn-retro {
+            transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease;
+            box-shadow: 0 4px 0 #3e2723;
+        }
+        .btn-retro:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #3e2723;
+            filter: brightness(1.05);
+        }
+        .btn-retro:active:not(:disabled) {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #3e2723;
+        }
+        .btn-retro:disabled {
+            opacity: 0.65;
+            cursor: default;
+        }
+
+        /* 動畫效果 */
+        @keyframes popIn {
+            0% { transform: scale(0.92); opacity: 0; }
+            70% { transform: scale(1.02); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-7px); }
+            40%, 80% { transform: translateX(7px); }
+        }
+        .animate-shake {
+            animation: shake 0.38s ease-in-out;
+        }
+
+        @keyframes dangerPulse {
+            0%, 100% { box-shadow: inset 0 0 0 0 rgba(220, 38, 38, 0); }
+            50% { box-shadow: inset 0 0 45px 8px rgba(220, 38, 38, 0.55); }
+        }
+        .danger-vignette {
+            animation: dangerPulse 0.9s infinite ease-in-out;
+        }
+
+        /* 自訂捲軸 */
+        ::-webkit-scrollbar {
+            width: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #eadbc0;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8d6e63;
+            border-radius: 4px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+
+    <!-- ================= 頂部航海導覽列 ================= -->
+    <header class="w-full bg-[#2c1d19] text-[#f4ebd9] px-3 py-2 shadow-lg border-b-2 border-[#8d6e63] z-30 flex-shrink-0">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#22543d] border-2 border-[#f6c453] flex items-center justify-center text-base sm:text-lg shadow">
+                    ⛵
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-lg font-black tracking-wide text-[#ffecb3] leading-tight">
+                        福爾摩沙大航海：開港通商生存戰
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-[#d7ccc8] hidden md:block">
+                        國小五年級社會・即時航海求生 × 外國先驅者 × 文化衝突與影響
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <button onclick="openEncyclopedia()" class="btn-retro bg-[#d69e2e] text-[#3e2723] font-black px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-xs sm:text-sm flex items-center gap-1 cursor-pointer">
+                    <span>📖</span> <span class="hidden sm:inline">人物圖鑑</span><span class="sm:hidden">圖鑑</span>
+                </button>
+                <button id="pauseBtn" onclick="togglePause()" class="hidden btn-retro bg-[#2b6cb0] text-white font-bold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm cursor-pointer">
+                    ⏸️ 暫停
+                </button>
+                <button id="soundToggleBtn" onclick="toggleSound()" class="btn-retro bg-[#5d4037] text-[#fff8e7] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-base cursor-pointer" title="音效開關">
+                    🔊
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= 主動態遊戲舞台 ================= -->
+    <main class="relative flex-grow w-full overflow-hidden bg-[#1e4d6b]">
+        <!-- 互動海圖 Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- 低血量/低糧食紅色警告光暈 -->
+        <div id="dangerOverlay" class="hidden pointer-events-none absolute inset-0 z-10 danger-vignette"></div>
+
+        <!-- ================= 遊戲中頂部生存 HUD ================= -->
+        <div id="hudContainer" class="hidden pointer-events-none absolute top-2 left-2 right-2 z-20 flex flex-col gap-2 max-w-6xl mx-auto">
+            <!-- 第一列：生存數值條 -->
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-[#2c1d19]/90 backdrop-blur-sm text-[#fff8e7] px-3 py-2 rounded-2xl border-2 border-[#8d6e63] shadow-lg">
+                <!-- 船體耐力 HP -->
+                <div class="flex items-center gap-1.5 flex-1 min-w-[115px] max-w-[200px]">
+                    <span class="text-sm sm:text-base" title="船體耐力">❤️</span>
+                    <div class="w-full">
+                        <div class="flex justify-between text-[10px] sm:text-xs font-bold mb-0.5">
+                            <span>船體耐力</span>
+                            <span id="hpText">100%</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-[#4a352f] rounded-full overflow-hidden border border-[#8d6e63]">
+                            <div id="hpBar" class="h-full bg-gradient-to-r from-red-500 to-rose-400 transition-all duration-200" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 補給糧食 Supplies -->
+                <div class="flex items-center gap-1.5 flex-1 min-w-[115px] max-w-[200px]">
+                    <span class="text-sm sm:text-base" title="補給糧食">🥖</span>
+                    <div class="w-full">
+                        <div class="flex justify-between text-[10px] sm:text-xs font-bold mb-0.5">
+                            <span>補給糧食</span>
+                            <span id="supplyText">100%</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-[#4a352f] rounded-full overflow-hidden border border-[#8d6e63]">
+                            <div id="supplyBar" class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-all duration-200" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 任務進度 & 生存天數 & 分數 -->
+                <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-black">
+                    <div class="bg-[#22543d] px-2.5 py-1 rounded-xl border border-[#48bb78] flex items-center gap-1">
+                        <span>🤝</span>
+                        <span id="missionProgressText">0 / 7</span>
+                    </div>
+                    <div class="bg-[#2b6cb0] px-2.5 py-1 rounded-xl border border-[#63b3ed] flex items-center gap-1">
+                        <span>📅</span>
+                        <span id="dayText">第 1 天</span>
+                    </div>
+                    <div class="bg-[#b7791f] text-[#fff8e7] px-2.5 py-1 rounded-xl border border-[#f6e05e] flex items-center gap-1">
+                        <span>⭐</span>
+                        <span id="scoreText">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二列：即時動態任務指示卡 -->
+            <div id="missionBanner" class="bg-[#fffdf5]/95 backdrop-blur-sm border-2 border-[#c68a1e] rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2.5 max-w-2xl">
+                <div id="missionAvatar" class="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-[#7d5a44] flex-shrink-0 bg-white shadow"></div>
+                <div class="flex-grow min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="bg-[#9b2c2c] text-white text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full">🚨 護送任務</span>
+                        <span id="missionTitle" class="text-xs sm:text-sm font-black text-[#3e2723] truncate">載入中...</span>
+                    </div>
+                    <p id="missionClue" class="text-[11px] sm:text-xs font-bold text-[#5d4037] leading-snug mt-0.5">
+                        請駕駛探險船前往正確的通商港口！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 即時浮動回饋 Toast（走錯港口、吃到補給、撞到風暴立刻顯示） -->
+        <div id="toastFeedback" class="hidden pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-lg">
+            <div id="toastBox" class="parchment-panel px-4 py-2.5 text-center font-black text-xs sm:text-sm shadow-2xl border-2">
+                回饋文字
+            </div>
+        </div>
+
+        <!-- 底部操作提示條 -->
+        <div id="controlHintBar" class="hidden pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-[#2c1d19]/80 text-[#ffecb3] text-[11px] sm:text-xs font-bold px-3.5 py-1 rounded-full border border-[#8d6e63] whitespace-nowrap">
+            🖱️ 滑鼠按住／👆 手指滑動海面／⌨️ WASD 與方向鍵 駕駛船隻・閃避漩渦並接取補給箱！
+        </div>
+
+        <!-- ================= 1. 開始畫面覆蓋層 ================= -->
+        <div id="startOverlay" class="absolute inset-0 z-30 flex items-center justify-center p-3 sm:p-6 bg-[#102533]/65 backdrop-blur-[2px]">
+            <div class="parchment-panel w-full max-w-2xl max-h-[92vh] overflow-y-auto p-5 sm:p-7 text-center animate-pop">
+                <div class="inline-block bg-[#9b2c2c] text-white text-xs sm:text-sm font-black px-3.5 py-1 rounded-full mb-2 shadow">
+                    1860 年代・清帝國後期臺灣開港通商
+                </div>
+                <h2 class="text-2xl sm:text-4xl font-black text-[#3e2723] mb-2 leading-tight">
+                    福爾摩沙大航海：<br class="sm:hidden">開港通商生存戰
+                </h2>
+                <p class="text-xs sm:text-sm font-bold text-[#5d4037] max-w-xl mx-auto mb-4 leading-relaxed">
+                    親自駕駛帆船在臺灣海峽求生！你需要閃避<span class="text-[#9b2c2c]">颱風漩渦</span>與<span class="text-[#6b46c1]">文化誤解迷霧</span>、打撈海上<span class="text-[#b7791f]">補給糧食</span>，並將 7 位外國先驅者護送至正確的通商港口，化解衝突、見證西方文化如何影響臺灣！
+                </p>
+
+                <!-- 玩法亮點 -->
+                <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4 text-left">
+                    <div class="bg-white/90 p-2.5 rounded-xl border-2 border-[#d7ccc8]">
+                        <div class="text-lg sm:text-xl mb-0.5">⛵ 動態航行</div>
+                        <p class="text-[11px] sm:text-xs text-[#5d4037] font-medium">觸控滑動、滑鼠拖曳或方向鍵開船，親身巡航四大港口。</p>
+                    </div>
+                    <div class="bg-white/90 p-2.5 rounded-xl border-2 border-[#d7ccc8]">
+                        <div class="text-lg sm:text-xl mb-0.5">🥖 生存壓力</div>
+                        <p class="text-[11px] sm:text-xs text-[#5d4037] font-medium">糧食會隨時間消耗！快收集補給箱並正確登陸來修復船隻。</p>
+                    </div>
+                    <div class="bg-white/90 p-2.5 rounded-xl border-2 border-[#d7ccc8]">
+                        <div class="text-lg sm:text-xl mb-0.5">🤝 化解衝突</div>
+                        <p class="text-[11px] sm:text-xs text-[#5d4037] font-medium">靠岸觸發歷史事件與文化誤解考驗，答對立刻獲得無敵護盾！</p>
+                    </div>
+                </div>
+
+                <!-- 難度選擇 -->
+                <div class="bg-[#efe4cc] rounded-2xl p-3 mb-5 border-2 border-[#c8b28e]">
+                    <div class="text-xs font-black text-[#5d4037] mb-2">🌊 選擇航海生存難度</div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="diff-easy" onclick="selectDifficulty('easy')" class="diff-btn py-2 px-2 rounded-xl border-2 font-black text-xs sm:text-sm cursor-pointer transition bg-white border-[#bcaaa4] text-[#3e2723]">
+                            🌱 輕鬆航行<br><span class="text-[10px] font-medium opacity-80">糧食消耗慢</span>
+                        </button>
+                        <button id="diff-normal" onclick="selectDifficulty('normal')" class="diff-btn py-2 px-2 rounded-xl border-2 font-black text-xs sm:text-sm cursor-pointer transition bg-[#22543d] border-[#1c4532] text-white shadow">
+                            🌊 標準生存<br><span class="text-[10px] font-medium opacity-90">推薦體驗</span>
+                        </button>
+                        <button id="diff-hard" onclick="selectDifficulty('hard')" class="diff-btn py-2 px-2 rounded-xl border-2 font-black text-xs sm:text-sm cursor-pointer transition bg-white border-[#bcaaa4] text-[#3e2723]">
+                            🔥 狂風挑戰<br><span class="text-[10px] font-medium opacity-80">漩渦多・刺激</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button onclick="startSurvivalGame()" class="btn-retro w-full sm:w-auto bg-[#22543d] text-white font-black text-lg sm:text-xl px-9 py-3.5 rounded-2xl flex items-center justify-center gap-2 cursor-pointer">
+                        <span>⛵</span> <span>立刻啟航求生！</span>
+                    </button>
+                    <button onclick="openEncyclopedia()" class="btn-retro w-full sm:w-auto bg-[#d69e2e] text-[#3e2723] font-black text-base px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 cursor-pointer">
+                        <span>📖</span> <span>先看人物圖鑑</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 2. 靠岸歷史事件 / 文化衝突抉擇彈窗 ================= -->
+        <div id="eventModal" class="hidden absolute inset-0 z-40 flex items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-sm">
+            <div class="parchment-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-6 animate-pop">
+                <div class="flex items-center gap-3 mb-3 pb-3 border-b-2 border-[#d7ccc8]">
+                    <div id="eventAvatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-3 border-[#7d5a44] bg-white flex-shrink-0 shadow"></div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                            <span id="eventBadge" class="bg-[#6b46c1] text-white text-xs font-black px-2.5 py-0.5 rounded-full">🤝 靠岸文化衝突事件</span>
+                            <span id="eventPortTag" class="bg-[#22543d] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">⚓ 淡水</span>
+                        </div>
+                        <h3 id="eventTitle" class="text-lg sm:text-xl font-black text-[#3e2723]">事件標題</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white/95 border-2 border-[#d7ccc8] rounded-xl p-3.5 sm:p-4 mb-4">
+                    <p id="eventStory" class="text-sm sm:text-base font-bold text-[#3e2723] leading-relaxed">
+                        情境描述...
+                    </p>
+                </div>
+
+                <!-- 選項區 -->
+                <div id="eventChoices" class="space-y-2.5 mb-4"></div>
+
+                <!-- 即時回饋區 -->
+                <div id="eventFeedbackBox" class="hidden rounded-xl p-4 border-2 mb-4 animate-pop">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span id="eventFbIcon" class="text-2xl">✅</span>
+                        <h4 id="eventFbTitle" class="text-base sm:text-lg font-black">太棒了！</h4>
+                        <span id="eventFbReward" class="text-xs font-black px-2.5 py-0.5 rounded-full bg-green-200 text-green-900">+25 補給 / +20 耐力</span>
+                    </div>
+                    <p id="eventFbText" class="text-xs sm:text-sm font-bold text-[#3e2723] leading-relaxed mb-2.5"></p>
+                    <div class="bg-[#fffdf6] border border-[#d69e2e] rounded-lg p-2.5 text-xs text-[#5d4037] space-y-1">
+                        <div><span class="font-black text-[#4338ca]">🌟 對臺灣的影響：</span><span id="eventFbImpact"></span></div>
+                        <div><span class="font-black text-[#9b2c2c]">🤝 文化交流與理解：</span><span id="eventFbCulture"></span></div>
+                    </div>
+                </div>
+
+                <div id="eventContinueWrap" class="hidden text-right">
+                    <button onclick="closeEventModal()" class="btn-retro w-full sm:w-auto bg-[#22543d] text-white font-black text-base sm:text-lg px-8 py-3 rounded-xl cursor-pointer">
+                        繼續航行求生 ⛵
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 3. 暫停彈窗 ================= -->
+        <div id="pauseOverlay" class="hidden absolute inset-0 z-40 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div class="parchment-panel p-6 text-center max-w-sm w-full animate-pop">
+                <div class="text-4xl mb-2">⚓</div>
+                <h3 class="text-2xl font-black text-[#3e2723] mb-2">下錨暫停中</h3>
+                <p class="text-sm font-bold text-[#5d4037] mb-5">休息一下，也可以打開人物圖鑑複習喔！</p>
+                <div class="flex flex-col gap-3">
+                    <button onclick="togglePause()" class="btn-retro bg-[#22543d] text-white font-black py-3 rounded-xl cursor-pointer">▶️ 繼續航行</button>
+                    <button onclick="openEncyclopedia()" class="btn-retro bg-[#d69e2e] text-[#3e2723] font-black py-3 rounded-xl cursor-pointer">📖 打開人物圖鑑</button>
+                    <button onclick="returnToStart()" class="btn-retro bg-[#9b2c2c] text-white font-black py-3 rounded-xl cursor-pointer">🏠 返回主畫面</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 4. 勝利 / 生存結束結算彈窗 ================= -->
+        <div id="resultOverlay" class="hidden absolute inset-0 z-40 flex items-center justify-center p-3 sm:p-5 bg-black/70 backdrop-blur-sm">
+            <div class="parchment-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-7 text-center animate-pop">
+                <div id="resultEmoji" class="text-5xl mb-1">🏆</div>
+                <div id="resultBadge" class="inline-block bg-[#d69e2e] text-[#3e2723] text-xs font-black px-3.5 py-1 rounded-full mb-2">
+                    航海探險完成
+                </div>
+                <h2 id="resultTitle" class="text-2xl sm:text-3xl font-black text-[#3e2723] mb-1">福爾摩沙傳奇航海王</h2>
+                <p id="resultSub" class="text-xs sm:text-sm font-bold text-[#5d4037] mb-5">你成功護送所有先驅者並化解文化衝突！</p>
+
+                <div class="grid grid-cols-3 gap-2.5 sm:gap-4 mb-5">
+                    <div class="bg-white/90 p-3 rounded-xl border-2 border-[#c8b28e]">
+                        <div class="text-xs font-bold text-[#6d4c41]">生存天數</div>
+                        <div id="resDays" class="text-xl sm:text-3xl font-black text-[#2b6cb0]">12 天</div>
+                    </div>
+                    <div class="bg-white/90 p-3 rounded-xl border-2 border-[#c8b28e]">
+                        <div class="text-xs font-bold text-[#6d4c41]">完成任務</div>
+                        <div id="resMissions" class="text-xl sm:text-3xl font-black text-[#22543d]">7 / 7</div>
+                    </div>
+                    <div class="bg-white/90 p-3 rounded-xl border-2 border-[#c8b28e]">
+                        <div class="text-xs font-bold text-[#6d4c41]">總積分</div>
+                        <div id="resScore" class="text-xl sm:text-3xl font-black text-[#b7791f]">1850</div>
+                    </div>
+                </div>
+
+                <!-- 航海學習紀錄 -->
+                <div class="text-left bg-[#fffdf7] border-2 border-[#d7ccc8] rounded-xl p-3.5 mb-5 max-h-44 overflow-y-auto">
+                    <div class="text-xs sm:text-sm font-black text-[#3e2723] mb-2">📜 本趟航海歷史紀錄：</div>
+                    <div id="resultLogList" class="space-y-2 text-xs"></div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button id="endlessContinueBtn" onclick="continueEndlessMode()" class="hidden btn-retro w-full sm:w-auto bg-[#2b6cb0] text-white font-black text-base px-6 py-3 rounded-xl cursor-pointer">
+                        🌊 繼續無盡生存挑戰！
+                    </button>
+                    <button onclick="startSurvivalGame()" class="btn-retro w-full sm:w-auto bg-[#22543d] text-white font-black text-base px-7 py-3 rounded-xl cursor-pointer">
+                        🔄 再航行一次
+                    </button>
+                    <button onclick="openEncyclopedia()" class="btn-retro w-full sm:w-auto bg-[#d69e2e] text-[#3e2723] font-black text-base px-6 py-3 rounded-xl cursor-pointer">
+                        📖 複習人物圖鑑
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= 隨點隨看「人物圖鑑」彈窗 ================= -->
+    <div id="encyclopediaModal" class="hidden fixed inset-0 bg-black/65 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5">
+        <div class="parchment-panel w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-pop">
+            <div class="bg-[#3e2723] text-[#f4ebd9] px-4 py-3 flex items-center justify-between border-b-4 border-[#8d6e63]">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📖</span>
+                    <h2 class="text-base sm:text-xl font-black text-[#ffecb3]">福爾摩沙外國先驅者・人物圖鑑（已自動暫停航行）</h2>
+                </div>
+                <button onclick="closeEncyclopedia()" class="bg-[#9b2c2c] text-white font-bold w-8 h-8 rounded-full flex items-center justify-center shadow cursor-pointer">✕</button>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-y-auto flex-grow space-y-4">
+                <div id="encycTabs" class="grid grid-cols-4 sm:grid-cols-7 gap-2"></div>
+                <div id="encycDetailCard" class="bg-white/95 border-2 border-[#bcaaa4] rounded-2xl p-4 sm:p-5 shadow"></div>
+            </div>
+
+            <div class="bg-[#efe4cc] px-4 py-2.5 border-t-2 border-[#d7ccc8] flex items-center justify-between">
+                <span class="text-xs font-bold text-[#6d4c41]">💡 記住每位先驅者的港口與故事，航行更順利！</span>
+                <button onclick="closeEncyclopedia()" class="btn-retro bg-[#5d4037] text-white font-bold px-5 py-1.5 rounded-xl text-sm cursor-pointer">回到遊戲</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. Web Audio API 即時合成音效引擎
+           ========================================================================== */
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function ensureAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundToggleBtn').textContent = soundEnabled ? '🔊' : '🔇';
+            if (soundEnabled) {
+                ensureAudio();
+                playTone(620, 0.06, 'sine', 0.12);
+            }
+        }
+
+        function playTone(freq, duration, type = 'sine', volume = 0.16, slideTo = null) {
+            if (!soundEnabled) return;
+            ensureAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+            gain.gain.setValueAtTime(volume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+
+        function playPickupSound() {
+            playTone(587.33, 0.09, 'triangle', 0.18, 880);
+        }
+
+        function playHitSound() {
+            playTone(170, 0.24, 'sawtooth', 0.2, 65);
+        }
+
+        function playDockSuccessSound() {
+            if (!soundEnabled) return;
+            ensureAudio();
+            const notes = [523.25, 659.25, 783.99, 1046.5];
+            notes.forEach((f, i) => {
+                setTimeout(() => playTone(f, 0.22, 'triangle', 0.18), i * 70);
+            });
+        }
+
+        function playWrongSound() {
+            playTone(230, 0.28, 'sine', 0.22, 145);
+        }
+
+        /* ==========================================================================
+           2. 7 位外國先驅者完整資料庫（含活動港口、事蹟、對臺灣影響、文化衝突與抉擇題）
+           ========================================================================== */
+        const CHARACTERS = [
+            {
+                id: 'mackay',
+                name: '馬偕',
+                enName: 'George Leslie Mackay',
+                role: '加拿大傳教士、醫生',
+                portId: 'tamsui',
+                regionLabel: '臺灣北部（淡水一帶）',
+                clue: '他免費幫民眾拔牙、創辦「滬尾偕醫館」與「牛津學堂」，被稱為「黑鬍鬚番」。請護送他到正確的港口！',
+                summary: '來自加拿大的傳教士與醫生，主要在臺灣北部淡水一帶活動。創辦「滬尾偕醫館」與「理學堂大書院（牛津學堂）」，並引進高麗菜、番茄等蔬菜。',
+                impact: '引進現代西醫與新式教育，創辦淡水女學堂讓女性也能受教，並引進多種新式蔬菜豐富臺灣人的飲食。',
+                cultureStory: '初到北部時因外貌與信仰不同，曾遭民眾誤解排斥、被丟石頭；他努力學說閩南語、免費拔牙治病並娶臺灣妻子，真誠接觸讓大家漸漸了解並敬愛他。',
+                tags: ['北部淡水', '免費拔牙', '牛津學堂', '淡水女學堂'],
+                event: {
+                    badge: '🤝 靠岸文化衝突事件',
+                    title: '淡水街頭的誤解與「黑鬍鬚番」',
+                    story: '你順利把馬偕護送到淡水！但一上岸，當地民眾看見外國人的大鬍子與陌生模樣，因為不了解西方文化而感到害怕，甚至有人朝他丟石頭。馬偕應該怎麼做才能化解誤解，幫助臺灣民眾？',
+                    choices: [
+                        '努力學習閩南語、免費幫民眾拔牙治病，並創辦學堂與大家真誠互動',
+                        '生氣地禁止臺灣人靠近醫館，只跟外國人做朋友',
+                        '立刻放棄傳教與行醫，搭船返回加拿大'
+                    ],
+                    correctIndex: 0,
+                    feedbackOk: '太棒了！馬偕學說閩南語、免費拔牙行醫並創辦牛津學堂與女學堂，用愛與行動化解文化隔閡，深受北部民眾敬愛！',
+                    feedbackWrong: '靠對立或逃避無法化解文化差異喔！歷史上馬偕選擇主動學說閩南語、免費幫民眾拔牙治病，才讓西方醫療與教育被大家接受。'
+                },
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><rect width="100" height="100" fill="#e6f0fa"/><circle cx="50" cy="42" r="22" fill="#fde0c3"/><path d="M28 44 Q28 76 50 79 Q72 76 72 44 Q63 54 50 54 Q37 54 28 44 Z" fill="#3e2723"/><path d="M39 52 Q50 48 61 52 Q57 57 50 57 Q43 57 39 52 Z" fill="#261714"/><path d="M28 38 Q27 17 50 17 Q73 17 72 38 Q64 26 50 26 Q36 26 28 38 Z" fill="#3e2723"/><circle cx="42" cy="39" r="2.8" fill="#1a1a1a"/><circle cx="58" cy="39" r="2.8" fill="#1a1a1a"/><path d="M20 100 Q24 76 50 76 Q76 76 80 100 Z" fill="#2c3e50"/><rect x="64" y="72" width="26" height="20" rx="3" fill="#fff8e7" stroke="#5d4037" stroke-width="2"/><rect x="75" y="76" width="4" height="12" fill="#c53030"/><rect x="71" y="80" width="12" height="4" fill="#c53030"/></svg>`
+            },
+            {
+                id: 'dodd',
+                name: '陶德',
+                enName: 'John Dodd',
+                role: '英國商人',
+                portId: 'dadaocheng',
+                regionLabel: '臺灣北部（淡水、大稻埕）',
+                clue: '他從福建引進茶苗、設精製茶廠，把臺灣烏龍茶以「Formosa Tea」外銷歐美！請送他前往茶業重鎮！',
+                summary: '來自英國的商人，活躍於北部淡水與大稻埕。引進茶苗並在大稻埕設立精製茶廠，將臺灣烏龍茶外銷歐美，被譽為「臺灣烏龍茶之父」。',
+                impact: '讓茶葉成為清帝國後期最賺錢的出口商品，創造大量茶農與揀茶女工的就業機會，帶動大稻埕繁榮並使臺灣經濟重心北移！',
+                cultureStory: '起初北部農民對外國茶商半信半疑，擔心種茶賣不出去；陶德主動貸款並保證收購，與買辦李春生合作，讓民眾透過貿易認識西方商業文化。',
+                tags: ['北部大稻埕', '臺灣烏龍茶之父', 'Formosa Tea', '經濟北移'],
+                event: {
+                    badge: '💰 靠岸貿易與影響事件',
+                    title: '大稻埕茶廠與「Formosa Tea」的誕生',
+                    story: '陶德抵達北部大稻埕準備推廣烏龍茶，但當地農民因為不熟悉外國商人的貿易方式，擔心種了茶賣不出去。陶德成功說服農民並將茶葉外銷歐美後，為臺灣帶來什麼重大影響？',
+                    choices: [
+                        '帶動北部茶業起飛與大稻埕繁榮，增加大量農民與揀茶女工的工作機會',
+                        '臺灣人從此完全不吃稻米，全部改喝烏龍茶過活',
+                        '歐美各國不喜歡臺灣茶，導致北部港口全部關閉'
+                    ],
+                    correctIndex: 0,
+                    feedbackOk: '答對了！陶德貸款協助農民種茶、建立品牌，讓大稻埕成為繁榮的國際茶都，也讓臺灣經濟重心逐漸往北部移動！',
+                    feedbackWrong: '「Formosa Tea」在歐美非常暢銷喔！它不但帶動大稻埕與淡水繁榮，更創造了許多農民與揀茶女工的就業機會。'
+                },
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><rect width="100" height="100" fill="#fef3c7"/><circle cx="50" cy="47" r="21" fill="#fde0c3"/><rect x="24" y="26" width="52" height="5" rx="2" fill="#3e2723"/><rect x="33" y="9" width="34" height="18" rx="2" fill="#4e342e"/><rect x="33" y="21" width="34" height="4" fill="#d69e2e"/><circle cx="42" cy="44" r="2.7" fill="#1a1a1a"/><circle cx="58" cy="44" r="2.7" fill="#1a1a1a"/><path d="M40 53 Q50 50 60 53" stroke="#6d4c41" stroke-width="2.8" fill="none" stroke-linecap="round"/><path d="M20 100 Q24 75 50 75 Q76 75 80 100 Z" fill="#795548"/><path d="M68 88 Q68 72 86 70 Q84 88 68 88 Z" fill="#2f855a" stroke="#1c4532" stroke-width="1.5"/></svg>`
+            },
+            {
+                id: 'maxwell',
+                name: '馬雅各',
+                enName: 'James Laidlaw Maxwell',
+                role: '英國醫生、傳教士',
+                portId: 'anping',
+                regionLabel: '臺灣南部（臺南府城、旗後）',
+                clue: '他是首位來臺的西方現代醫學傳教士，在南部開設醫館（今新樓醫院前身）。請護送他前往南部古都港口！',
+                summary: '英國醫生與傳教士，在南部臺南府城與旗後開設醫館（今新樓醫院前身），推廣西醫手術與公共衛生。',
+                impact: '奠定臺灣現代西醫與公共衛生基礎，改變過去民眾生病只能求神問卜或偏方的習慣，大幅提升醫療水準。',
+                cultureStory: '在臺南看西街剛開醫館時，民眾因不了解西醫手術而傳出「洋人挖人心肝」的謠言爆發衝突；後來他治好無數病患，讓西醫逐漸獲得大家的信任。',
+                tags: ['南部臺南', '首位西醫', '新樓醫院前身', '看西街事件'],
+                event: {
+                    badge: '🤝 靠岸文化衝突事件',
+                    title: '臺南看西街的西醫謠言風波',
+                    story: '馬雅各在臺南府城開設醫館，卻因為中西醫療文化差異，民間竟傳出「洋醫生動手術會挖人心肝」的謠言，引起民眾恐慌與衝突。後來西方醫學是如何逐漸被大家了解與接受的？',
+                    choices: [
+                        '不再動手術，改用傳統符水幫大家治病',
+                        '堅持以高明醫術耐心治癒無數病患，隨著接觸頻繁逐漸建立信任',
+                        '請外國軍隊把府城包圍起來，強迫民眾來看病'
+                    ],
+                    correctIndex: 1,
+                    feedbackOk: '完全正確！雖然一開始因為不了解而有誤會，但隨著醫病互動頻繁，大家親眼看見西醫救人的效果，現代醫療文化便逐漸深植臺灣！',
+                    feedbackWrong: '強迫或放棄都無法建立信任喔！馬雅各是透過持續醫治病患、展現西醫的真實療效，讓民眾從誤解轉為信任。'
+                },
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><rect width="100" height="100" fill="#e6f4ea"/><circle cx="50" cy="43" r="22" fill="#fde0c3"/><path d="M28 40 Q27 17 50 17 Q73 17 72 40 Q65 26 50 26 Q35 26 28 40 Z" fill="#6d4c41"/><path d="M28 38 L28 55 L34 52 L32 38 Z" fill="#6d4c41"/><path d="M72 38 L72 55 L66 52 L68 38 Z" fill="#6d4c41"/><circle cx="42" cy="40" r="2.7" fill="#1a1a1a"/><circle cx="58" cy="40" r="2.7" fill="#1a1a1a"/><path d="M43 52 Q50 58 57 52" stroke="#8d6e63" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M20 100 Q24 74 50 74 Q76 74 80 100 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/><path d="M36 75 Q50 93 64 75" stroke="#2d3748" stroke-width="3" fill="none"/><circle cx="74" cy="86" r="7" fill="#c53030"/><rect x="72.5" y="82" width="3" height="8" fill="#ffffff"/><rect x="70" y="84.5" width="8" height="3" fill="#ffffff"/></svg>`
+            },
+            {
+                id: 'campbell',
+                name: '甘為霖',
+                enName: 'William Campbell',
+                role: '英國傳教士',
+                portId: 'anping',
+                regionLabel: '臺灣南部（臺南）',
+                clue: '他在南部創辦全臺第一所盲人學校「訓瞽堂」，並設計「盲人點字法」！快護送他到臺南安平！',
+                summary: '來自英國的傳教士，在臺南創辦全臺第一所盲人學校「訓瞽堂」，設計「盲人點字法」，讓視障者能透過雙手觸覺讀書。',
+                impact: '開啟臺灣特殊教育與社會福利的先河，讓視障者能學習知識與謀生技能，不必再只能仰賴算命或乞討維生。',
+                cultureStory: '當時社會普遍懷疑「眼睛看不見怎麼可能讀書」；甘為霖用點字書與實際教學成果打破偏見，改變了臺灣社會對身心障礙者的看法。',
+                tags: ['南部臺南', '訓瞽堂', '盲人點字法', '特殊教育'],
+                event: {
+                    badge: '🌟 靠岸教育影響事件',
+                    title: '打破偏見！全臺第一所盲人學校「訓瞽堂」',
+                    story: '甘為霖抵達臺南後，發現許多視障朋友無法上學、生活困苦。當時許多人懷疑「看不見怎麼可能讀書？」。甘為霖創辦「訓瞽堂」並設計盲人點字法，對臺灣社會造成什麼重要影響？',
+                    choices: [
+                        '讓視障者能靠觸覺讀書與學習技能，開啟臺灣特殊教育的先河',
+                        '只有視力很好的人才能進去訓瞽堂上課',
+                        '規定所有盲人只能去港口幫忙搬運茶葉'
+                    ],
+                    correctIndex: 0,
+                    feedbackOk: '太棒了！甘為霖用實際成果打破社會偏見，讓視障朋友擁有受教育與自立的機會，對臺灣特殊教育影響深遠！',
+                    feedbackWrong: '「訓瞽堂」正是專為視障者設立的學校！甘為霖設計的點字法讓盲人也能用手「閱讀」，開啟了臺灣的特殊教育。'
+                },
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><rect width="100" height="100" fill="#f3e8ff"/><circle cx="50" cy="42" r="22" fill="#fde0c3"/><path d="M28 38 Q29 18 50 18 Q71 18 72 38 Q63 27 50 27 Q37 27 28 38 Z" fill="#cbd5e1"/><path d="M32 51 Q35 73 50 75 Q65 73 68 51 Q58 58 50 58 Q42 58 32 51 Z" fill="#cbd5e1"/><circle cx="41" cy="41" r="6" stroke="#475569" stroke-width="2" fill="rgba(255,255,255,0.4)"/><circle cx="59" cy="41" r="6" stroke="#475569" stroke-width="2" fill="rgba(255,255,255,0.4)"/><line x1="47" y1="41" x2="53" y2="41" stroke="#475569" stroke-width="2"/><path d="M20 100 Q24 75 50 75 Q76 75 80 100 Z" fill="#553c9a"/><rect x="61" y="71" width="28" height="22" rx="2" fill="#fef3c7" stroke="#744210" stroke-width="2"/><circle cx="68" cy="77" r="1.5" fill="#744210"/><circle cx="73" cy="82" r="1.5" fill="#744210"/><circle cx="80" cy="86" r="1.5" fill="#744210"/></svg>`
+            },
+            {
+                id: 'barclay',
+                name: '巴克禮',
+                enName: 'Thomas Barclay',
+                role: '英國傳教士',
+                portId: 'anping',
+                regionLabel: '臺灣南部（臺南）',
+                clue: '他引進全臺第一台新式印刷機，在南部創辦《臺灣府城教會報》並推廣「白話字」！請護送他到臺南安平！',
+                summary: '英國傳教士，在臺南引進新式印刷機，創辦臺灣第一份報紙《臺灣府城教會報》，大力推廣羅馬拼音的「白話字」。',
+                impact: '帶動臺灣現代印刷與報業發展；白話字讓原本不識漢字的平民與婦女也能輕鬆讀報寫信，大幅促進知識普及。',
+                cultureStory: '最初部分傳統文人排斥羅馬拼音的「洋字」，但隨著愈來愈多平民靠白話字學會看報吸收新知，這種結合西方拼音與臺灣語言的文化逐漸大受歡迎。',
+                tags: ['南部臺南', '新式印刷機', '臺灣府城教會報', '白話字'],
+                event: {
+                    badge: '📰 靠岸文化交流事件',
+                    title: '《臺灣府城教會報》與白話字的普及',
+                    story: '巴克禮把新式印刷機運進臺南，準備用羅馬拼音的「白話字」印製臺灣第一份報紙《臺灣府城教會報》。雖然初期有傳統文人排斥，但白話字後來為臺灣人民帶來什麼巨大改變？',
+                    choices: [
+                        '只有英國官員才看得懂這份報紙，平民完全用不到',
+                        '讓許多原本不識漢字的平民百姓與婦女也能輕鬆讀報、寫信，打開世界視野',
+                        '導致臺灣人全部忘記原本說的語言'
+                    ],
+                    correctIndex: 1,
+                    feedbackOk: '沒錯！白話字簡單好學，讓當時沒有機會讀私塾的平民與婦女也能讀報寫信，大大促進了臺灣的知識傳播！',
+                    feedbackWrong: '《臺灣府城教會報》就是用臺灣人日常說的話去拼音的喔！它讓原本不識漢字的平民與婦女也能輕鬆閱讀。'
+                },
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><rect width="100" height="100" fill="#e0f2fe"/><circle cx="50" cy="43" r="22" fill="#fde0c3"/><path d="M28 37 Q30 17 50 17 Q70 17 72 37 Q62 26 50 26 Q38 26 28 37 Z" fill="#94a3b8"/><path d="M39 52 Q50 47 61 52 Q56 56 50 54 Q44 56 39 52 Z" fill="#94a3b8"/><circle cx="42" cy="40" r="2.7" fill="#1a1a1a"/><circle cx="58" cy="40" r="2.7" fill="#1a1a1a"/><path d="M20 100 Q24 74 50 74 Q76 74 80 100 Z" fill="#1e293b"/><rect x="44" y="74" width="12" height="6" fill="#ffffff"/><rect x="61" y="69" width="28" height="24" rx="2" fill="#fffbeb" stroke="#475569" stroke-width="2"/><rect x="65" y="73" width="20" height="4" fill="#9b2c2c"/></svg>`
+            },
+            {
+                id: 'pickering',
+                name: '必麒麟',
+                enName: 'William Alexander Pickering',
+                role: '英國探險家、洋行職員',
+                portId: 'takao',
+                regionLabel: '臺灣中南部（打狗、安平及山區）',
+                clue: '他精通閩南語與多種原住民族語，深入中南部山區採集樟腦並擔任通譯化解衝突！請駛向南部打狗港！',
+                summary: '英國探險家與洋行職員，在中南部打狗、安平與山區活動。精通閩南語與原住民族語，採集樟腦並協助化解中外衝突。',
+                impact: '促進樟腦貿易與族群溝通，並寫下《歷險福爾摩沙》，留下清帝國後期漢人與原住民社會的珍貴紀錄。',
+                cultureStory: '開港初期常因樟腦貿易、語言不通與習俗差異爆發中外衝突；必麒麟主動學習在地語言、尊重部落文化，成為化解誤會的重要溝通橋梁。',
+                tags: ['打狗・中南部', '樟腦貿易', '語言通譯', '化解衝突'],
+                event: {
+                    badge: '🤝 靠岸族群溝通事件',
+                    title: '山區樟腦糾紛與語言通譯的智慧',
+                    story: '必麒麟從打狗港出發深入中南部山區，當時外國商人、漢人與原住民部落常因為語言不通和文化差異發生誤解甚至衝突。必麒麟靠著什麼方法成功化解危機？',
+                    choices: [
+                        '主動學習閩南語與原住民族語言、尊重部落習俗，擔任通譯協助雙方和平交涉',
+                        '完全不說話，直接用比手畫腳吵架',
+                        '把山區的樟腦樹全部砍光，不讓任何人做生意'
+                    ],
+                    correctIndex: 0,
+                    feedbackOk: '太棒了！語言與尊重是化解文化衝突的鑰匙！必麒麟靠著精通多國與部落語言，化解了許多中外誤解，並留下珍貴的臺灣紀錄！',
+                    feedbackWrong: '必麒麟最厲害的就是語言天分與對在地文化的尊重喔！他擔任通譯協助雙方溝通，減少了許多不必要的衝突。'
+                },
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><rect width="100" height="100" fill="#fee2e2"/><circle cx="50" cy="45" r="21" fill="#fde0c3"/><ellipse cx="50" cy="27" rx="34" ry="6" fill="#a1887f"/><path d="M32 27 Q35 12 50 12 Q65 12 68 27 Z" fill="#795548"/><circle cx="42" cy="43" r="2.7" fill="#1a1a1a"/><circle cx="58" cy="43" r="2.7" fill="#1a1a1a"/><path d="M30 49 Q33 72 50 74 Q67 72 70 49 Q58 57 50 57 Q42 57 30 49 Z" fill="#5d4037"/><path d="M20 100 Q24 75 50 75 Q76 75 80 100 Z" fill="#9b2c2c"/><circle cx="76" cy="82" r="11" fill="#fef3c7" stroke="#5d4037" stroke-width="2"/><polygon points="76,74 79,82 76,90 73,82" fill="#c53030"/></svg>`
+            },
+            {
+                id: 'swinhoe',
+                name: '史溫侯',
+                enName: 'Robert Swinhoe',
+                role: '英國外交官、博物學家',
+                portId: 'all_taiwan',
+                regionLabel: '全臺各地（淡水、雞籠、安平、打狗）',
+                clue: '首任英國駐臺領事，足跡遍及全臺各地，發表臺灣藍鵲與臺灣獼猴！請護送他前往【🌏 全臺領事巡航站】！',
+                summary: '首任英國駐臺領事與博物學家，足跡遍布全臺各地，向世界發表臺灣藍鵲、臺灣獼猴等數十種特有種，被譽為「臺灣博物學之父」。',
+                impact: '讓臺灣豐富的特有種生物登上國際科學舞台，奠定現代臺灣生態學與自然科學研究的基礎。',
+                cultureStory: '開港初期外國領事進駐常伴隨外交摩擦，但史溫侯走訪各地向在地獵人與居民請教動植物知識，頻繁互動讓西方科學觀察方法逐漸被認識。',
+                tags: ['全臺各地', '首任駐臺領事', '臺灣藍鵲', '博物學之父'],
+                event: {
+                    badge: '🦜 靠岸生態發現事件',
+                    title: '讓世界看見福爾摩沙的生態寶藏',
+                    story: '史溫侯巡航全臺各地，除了處理領事事務，還向在地獵人與居民請教山林知識，記錄了臺灣藍鵲、臺灣獼猴等數十種生物。他的生態調查對臺灣帶來什麼深遠影響？',
+                    choices: [
+                        '把臺灣所有動物都抓光，讓森林變得空蕩蕩',
+                        '讓臺灣獨特的特有種生物登上國際舞台，奠定臺灣現代生態與博物學研究基礎',
+                        '只研究了北極熊與企鵝，沒有記錄任何臺灣生物'
+                    ],
+                    correctIndex: 1,
+                    feedbackOk: '完全正確！史溫侯被譽為「臺灣博物學之父」，他與在地居民合作採集記錄，讓全世界看見臺灣珍貴的自然生態！',
+                    feedbackWrong: '史溫侯是在臺灣進行全臺生態調查，向世界發表了臺灣藍鵲、臺灣獼猴等特有種，奠定了臺灣現代自然科學研究的基礎喔！'
+                },
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><rect width="100" height="100" fill="#dbeafe"/><circle cx="48" cy="44" r="21" fill="#fde0c3"/><path d="M26 40 Q25 17 48 16 Q71 17 70 40 Q62 25 48 25 Q34 25 26 40 Z" fill="#3e2723"/><circle cx="40" cy="41" r="2.7" fill="#1a1a1a"/><circle cx="56" cy="41" r="2.7" fill="#1a1a1a"/><path d="M36 52 Q48 48 60 52 Q55 61 48 61 Q41 61 36 52 Z" fill="#4e342e"/><path d="M18 100 Q22 74 48 74 Q74 74 78 100 Z" fill="#1e3a8a"/><ellipse cx="75" cy="78" rx="9" ry="7" fill="#2563eb"/><circle cx="71" cy="71" r="5" fill="#111827"/><polygon points="66,71 61,73 66,74" fill="#dc2626"/></svg>`
+            }
+        ];
+
+        /* ==========================================================================
+           3. 地圖港口定義（使用標準化比例座標 0.0~1.0，自動適應手機/平板/電腦）
+           ========================================================================== */
+        const PORTS = [
+            { id: 'tamsui', name: '淡水', region: '北部', icon: '⚓', nx: 0.69, ny: 0.23, color: '#2b6cb0' },
+            { id: 'dadaocheng', name: '大稻埕', region: '北部', icon: '🍵', nx: 0.72, ny: 0.32, color: '#d69e2e' },
+            { id: 'all_taiwan', name: '全臺巡航站', region: '雞籠/全臺', icon: '🌏', nx: 0.82, ny: 0.25, color: '#6b46c1' },
+            { id: 'anping', name: '安平・臺南', region: '南部', icon: '🏥', nx: 0.56, ny: 0.67, color: '#22543d' },
+            { id: 'takao', name: '打狗・中南部', region: '中南部', icon: '🧭', nx: 0.60, ny: 0.80, color: '#9b2c2c' }
+        ];
+
+        // 臺灣本島手繪輪廓（標準化座標）
+        const TAIWAN_POLY = [
+            [0.74, 0.16], [0.81, 0.22], [0.83, 0.30], [0.80, 0.42],
+            [0.78, 0.56], [0.74, 0.71], [0.69, 0.85], [0.65, 0.90],
+            [0.62, 0.84], [0.57, 0.72], [0.55, 0.62], [0.57, 0.49],
+            [0.62, 0.36], [0.68, 0.24]
+        ];
+
+        const DIFFICULTY_CFG = {
+            easy:   { supplyDrain: 2.0, hazardCount: 3, hazardSpeed: 0.055, label: '輕鬆航行' },
+            normal: { supplyDrain: 3.1, hazardCount: 5, hazardSpeed: 0.085, label: '標準生存' },
+            hard:   { supplyDrain: 4.3, hazardCount: 7, hazardSpeed: 0.115, label: '狂風挑戰' }
+        };
+
+        /* ==========================================================================
+           4. 遊戲核心狀態與 Canvas 初始化
+           ========================================================================== */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let viewW = 800, viewH = 600;
+        let difficulty = 'normal';
+        let gameMode = 'menu'; // 'menu' | 'playing' | 'paused' | 'event' | 'ended'
+        let prevModeBeforeEncyc = 'menu';
+        let endlessMode = false;
+
+        let ship = {
+            x: 0.25, y: 0.50,
+            vx: 0, vy: 0,
+            angle: 0,
+            shieldTimer: 0,
+            hitFlash: 0,
+            speedBoost: 0
+        };
+
+        let stats = {
+            hp: 100,
+            supplies: 100,
+            score: 0,
+            elapsedSec: 0,
+            missionsDone: 0,
+            missionQueue: [],
+            currentChar: null,
+            wrongPortCooldown: 0,
+            logs: []
+        };
+
+        let hazards = [];       // 颱風漩渦 & 文化誤解迷霧
+        let collectibles = [];  // 補給木箱 & 順風氣流
+        let particles = [];     // 水花與特效粒子
+        let floatingTexts = []; // 畫面上即時飄字回饋
+
+        // 控制狀態（同時支援鍵盤 + 滑鼠拖曳 + 手指觸控）
+        const keys = {};
+        let pointerActive = false;
+        let pointerTarget = { x: 0.25, y: 0.5 };
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            viewW = rect.width;
+            viewH = rect.height;
+            canvas.width = Math.floor(viewW * dpr);
+            canvas.height = Math.floor(viewH * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // 鍵盤事件
+        window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+            if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) {
+                if (gameMode === 'playing') e.preventDefault();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // 滑鼠與觸控事件（直接點按/滑動海面，船就會靈活轉向游過去！）
+        function updatePointerFromEvent(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            pointerTarget.x = Math.max(0.03, Math.min(0.97, (clientX - rect.left) / rect.width));
+            pointerTarget.y = Math.max(0.08, Math.min(0.95, (clientY - rect.top) / rect.height));
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            if (gameMode !== 'playing') return;
+            pointerActive = true;
+            updatePointerFromEvent(e.clientX, e.clientY);
+        });
+        canvas.addEventListener('pointermove', e => {
+            if (!pointerActive || gameMode !== 'playing') return;
+            updatePointerFromEvent(e.clientX, e.clientY);
+        });
+        window.addEventListener('pointerup', () => { pointerActive = false; });
+        window.addEventListener('pointercancel', () => { pointerActive = false; });
+
+        /* ==========================================================================
+           5. 遊戲流程控制：難度、開局、物件生成、任務切換
+           ========================================================================== */
+        function selectDifficulty(level) {
+            difficulty = level;
+            playTone(540, 0.06, 'sine', 0.12);
+            ['easy', 'normal', 'hard'].forEach(d => {
+                const btn = document.getElementById(`diff-${d}`);
+                if (d === level) {
+                    btn.className = 'diff-btn py-2 px-2 rounded-xl border-2 font-black text-xs sm:text-sm cursor-pointer transition bg-[#22543d] border-[#1c4532] text-white shadow';
+                } else {
+                    btn.className = 'diff-btn py-2 px-2 rounded-xl border-2 font-black text-xs sm:text-sm cursor-pointer transition bg-white border-[#bcaaa4] text-[#3e2723]';
+                }
+            });
+        }
+
+        function shuffle(arr) {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function startSurvivalGame() {
+            ensureAudio();
+            playDockSuccessSound();
+            endlessMode = false;
+
+            const cfg = DIFFICULTY_CFG[difficulty];
+            ship = { x: 0.22, y: 0.52, vx: 0, vy: 0, angle: 0, shieldTimer: 3.5, hitFlash: 0, speedBoost: 0 };
+            stats = {
+                hp: 100,
+                supplies: 100,
+                score: 0,
+                elapsedSec: 0,
+                missionsDone: 0,
+                missionQueue: shuffle(CHARACTERS),
+                currentChar: null,
+                wrongPortCooldown: 0,
+                logs: []
+            };
+
+            hazards = [];
+            collectibles = [];
+            particles = [];
+            floatingTexts = [];
+
+            for (let i = 0; i < cfg.hazardCount; i++) {
+                spawnHazard();
+            }
+            for (let i = 0; i < 4; i++) {
+                spawnCollectible();
+            }
+
+            pickNextMission();
+
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('resultOverlay').classList.add('hidden');
+            document.getElementById('pauseOverlay').classList.add('hidden');
+            document.getElementById('eventModal').classList.add('hidden');
+            document.getElementById('hudContainer').classList.remove('hidden');
+            document.getElementById('controlHintBar').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.remove('hidden');
+
+            gameMode = 'playing';
+            updateHUD();
+            showToast('⛵ 啟航成功！快閃避漩渦、撿取補給箱，護送先驅者到正確港口！', 'info');
+        }
+
+        function pickNextMission() {
+            if (stats.missionQueue.length === 0) {
+                stats.missionQueue = shuffle(CHARACTERS);
+            }
+            stats.currentChar = stats.missionQueue.shift();
+            const c = stats.currentChar;
+            document.getElementById('missionAvatar').innerHTML = c.svg;
+            document.getElementById('missionTitle').textContent = `護送【${c.name}】(${c.role})`;
+            document.getElementById('missionClue').textContent = c.clue;
+        }
+
+        function spawnHazard() {
+            const cfg = DIFFICULTY_CFG[difficulty];
+            const isMist = Math.random() < 0.45;
+            // 生成在海面區域，避開船隻當前附近
+            let hx, hy, tries = 0;
+            do {
+                hx = 0.08 + Math.random() * 0.46;
+                hy = 0.22 + Math.random() * 0.68;
+                tries++;
+            } while (Math.hypot(hx - ship.x, hy - ship.y) < 0.18 && tries < 10);
+
+            const angle = Math.random() * Math.PI * 2;
+            const speed = cfg.hazardSpeed * (0.7 + Math.random() * 0.6);
+            hazards.push({
+                type: isMist ? 'mist' : 'whirlpool',
+                x: hx,
+                y: hy,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                r: isMist ? 0.036 : 0.032,
+                rot: Math.random() * Math.PI * 2
+            });
+        }
+
+        function spawnCollectible() {
+            const isWind = Math.random() < 0.25;
+            collectibles.push({
+                type: isWind ? 'wind' : 'crate',
+                x: 0.08 + Math.random() * 0.46,
+                y: 0.22 + Math.random() * 0.68,
+                bob: Math.random() * Math.PI * 2
+            });
+        }
+
+        function addFloatingText(nx, ny, text, color = '#ffecb3') {
+            floatingTexts.push({ x: nx, y: ny, text, color, life: 1.35 });
+        }
+
+        function spawnParticles(nx, ny, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const sp = 0.05 + Math.random() * 0.14;
+                particles.push({
+                    x: nx, y: ny,
+                    vx: Math.cos(a) * sp,
+                    vy: Math.sin(a) * sp,
+                    color,
+                    size: 2.5 + Math.random() * 3.5,
+                    life: 0.55 + Math.random() * 0.35
+                });
+            }
+        }
+
+        let toastTimeout = null;
+        function showToast(msg, type = 'info') {
+            const wrap = document.getElementById('toastFeedback');
+            const box = document.getElementById('toastBox');
+            wrap.classList.remove('hidden');
+            box.textContent = msg;
+            box.className = 'parchment-panel px-4 py-2.5 text-center font-black text-xs sm:text-sm shadow-2xl border-2 animate-pop ';
+            if (type === 'error') {
+                box.classList.add('border-[#9b2c2c]', 'text-[#9b2c2c]', 'bg-red-50');
+            } else if (type === 'success') {
+                box.classList.add('border-[#22543d]', 'text-[#22543d]', 'bg-green-50');
+            } else {
+                box.classList.add('border-[#c68a1e]', 'text-[#3e2723]');
+            }
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => wrap.classList.add('hidden'), 3400);
+        }
+
+        /* ==========================================================================
+           6. 靠岸事件與即時文化衝突抉擇
+           ========================================================================== */
+        function triggerPortEvent(charObj, portObj) {
+            gameMode = 'event';
+            pointerActive = false;
+            playDockSuccessSound();
+
+            const ev = charObj.event;
+            document.getElementById('eventAvatar').innerHTML = charObj.svg;
+            document.getElementById('eventBadge').textContent = ev.badge;
+            document.getElementById('eventPortTag').textContent = `${portObj.icon} ${portObj.name}（${portObj.region}）`;
+            document.getElementById('eventTitle').textContent = ev.title;
+            document.getElementById('eventStory').textContent = ev.story;
+
+            const choicesEl = document.getElementById('eventChoices');
+            choicesEl.innerHTML = ev.choices.map((text, idx) => `
+                <button id="ev-opt-${idx}" onclick="answerEventChoice(${idx})" class="btn-retro w-full text-left bg-white hover:bg-[#fff8e1] border-2 border-[#7d5a44] rounded-xl p-3 sm:p-3.5 flex items-center gap-3 cursor-pointer">
+                    <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#3e2723] text-[#ffecb3] font-black flex items-center justify-center flex-shrink-0 text-sm">
+                        ${['A', 'B', 'C'][idx]}
+                    </span>
+                    <span class="text-xs sm:text-sm font-bold text-[#3e2723]">${text}</span>
+                </button>
+            `).join('');
+
+            document.getElementById('eventFeedbackBox').classList.add('hidden');
+            document.getElementById('eventContinueWrap').classList.add('hidden');
+            document.getElementById('eventModal').classList.remove('hidden');
+        }
+
+        function answerEventChoice(selectedIdx) {
+            const c = stats.currentChar;
+            const ev = c.event;
+            const isCorrect = selectedIdx === ev.correctIndex;
+
+            ev.choices.forEach((_, i) => {
+                const btn = document.getElementById(`ev-opt-${i}`);
+                btn.disabled = true;
+                if (i === ev.correctIndex) {
+                    btn.classList.remove('bg-white', 'border-[#7d5a44]');
+                    btn.classList.add('bg-green-100', 'border-[#22543d]', 'ring-2', 'ring-green-400');
+                } else if (i === selectedIdx && !isCorrect) {
+                    btn.classList.remove('bg-white', 'border-[#7d5a44]');
+                    btn.classList.add('bg-red-100', 'border-[#9b2c2c]', 'animate-shake');
+                }
+            });
+
+            const fbBox = document.getElementById('eventFeedbackBox');
+            const fbIcon = document.getElementById('eventFbIcon');
+            const fbTitle = document.getElementById('eventFbTitle');
+            const fbReward = document.getElementById('eventFbReward');
+            const fbText = document.getElementById('eventFbText');
+
+            fbBox.classList.remove('hidden', 'bg-green-50', 'border-[#22543d]', 'bg-red-50', 'border-[#9b2c2c]');
+
+            if (isCorrect) {
+                playDockSuccessSound();
+                stats.hp = Math.min(100, stats.hp + 20);
+                stats.supplies = Math.min(100, stats.supplies + 30);
+                stats.score += 250;
+                ship.shieldTimer = 5.5;
+                fbBox.classList.add('bg-green-50', 'border-[#22543d]');
+                fbIcon.textContent = '🎉';
+                fbTitle.textContent = '化解成功！獲得生存大補給！';
+                fbTitle.className = 'text-base sm:text-lg font-black text-[#22543d]';
+                fbReward.textContent = '+30 糧食・+20 耐力・🛡️護盾5秒';
+                fbReward.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-green-200 text-green-900';
+                fbText.textContent = ev.feedbackOk;
+            } else {
+                playWrongSound();
+                stats.supplies = Math.min(100, stats.supplies + 12);
+                stats.score += 80;
+                ship.shieldTimer = 2.5;
+                fbBox.classList.add('bg-red-50', 'border-[#9b2c2c]');
+                fbIcon.textContent = '💡';
+                fbTitle.textContent = '差一點點！馬上修正歷史觀念：';
+                fbTitle.className = 'text-base sm:text-lg font-black text-[#9b2c2c]';
+                fbReward.textContent = '安全靠岸 +12 糧食';
+                fbReward.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900';
+                fbText.textContent = ev.feedbackWrong;
+            }
+
+            document.getElementById('eventFbImpact').textContent = c.impact;
+            document.getElementById('eventFbCulture').textContent = c.cultureStory;
+            document.getElementById('eventContinueWrap').classList.remove('hidden');
+
+            stats.missionsDone += 1;
+            stats.logs.push({
+                charName: c.name,
+                region: c.regionLabel,
+                ok: isCorrect,
+                note: c.impact
+            });
+            updateHUD();
+        }
+
+        function closeEventModal() {
+            document.getElementById('eventModal').classList.add('hidden');
+            // 稍微把船推離港口一點，避免重複觸發
+            ship.x = Math.max(0.18, ship.x - 0.10);
+            spawnParticles(ship.x, ship.y, '#68d391', 18);
+
+            // 若剛好完成 7 位先驅者任務且尚未進入無盡模式 -> 顯示勝利結算！
+            if (stats.missionsDone >= 7 && !endlessMode) {
+                showEndScreen(true);
+                return;
+            }
+
+            pickNextMission();
+            gameMode = 'playing';
+            showToast(`🧭 新任務：護送【${stats.currentChar.name}】前往正確港口！`, 'info');
+        }
+
+        function continueEndlessMode() {
+            endlessMode = true;
+            document.getElementById('resultOverlay').classList.add('hidden');
+            stats.hp = Math.min(100, stats.hp + 30);
+            stats.supplies = Math.min(100, stats.supplies + 40);
+            ship.shieldTimer = 4.0;
+            spawnHazard(); // 無盡模式增加一點挑戰！
+            pickNextMission();
+            gameMode = 'playing';
+            updateHUD();
+            showToast('🌊 進入無盡生存挑戰！看看你能生存幾天！', 'info');
+        }
+
+        function showEndScreen(isVictory, loseReason = '') {
+            gameMode = 'ended';
+            pointerActive = false;
+            document.getElementById('dangerOverlay').classList.add('hidden');
+
+            const days = Math.max(1, Math.floor(stats.elapsedSec / 6) + 1);
+            document.getElementById('resDays').textContent = `${days} 天`;
+            document.getElementById('resMissions').textContent = endlessMode ? `${stats.missionsDone} 趟` : `${stats.missionsDone} / 7`;
+            document.getElementById('resScore').textContent = stats.score;
+
+            const endlessBtn = document.getElementById('endlessContinueBtn');
+            if (isVictory) {
+                playDockSuccessSound();
+                document.getElementById('resultEmoji').textContent = '🏆';
+                document.getElementById('resultBadge').textContent = '全體先驅者護送成功！';
+                document.getElementById('resultTitle').textContent = '👑 福爾摩沙傳奇航海王';
+                document.getElementById('resultSub').textContent = '你成功在風浪中求生，完成 7 位外國先驅者的歷史任務並促進東西文化理解！';
+                endlessBtn.classList.remove('hidden');
+            } else {
+                playWrongSound();
+                document.getElementById('resultEmoji').textContent = '⚓';
+                document.getElementById('resultBadge').textContent = '探險船需要進港維修';
+                document.getElementById('resultTitle').textContent = stats.missionsDone >= 4 ? '⛵ 勇敢的開港領航員' : '🌊 見習小航海家';
+                document.getElementById('resultSub').textContent = loseReason;
+                endlessBtn.classList.add('hidden');
+            }
+
+            const logEl = document.getElementById('resultLogList');
+            if (stats.logs.length === 0) {
+                logEl.innerHTML = `<div class="text-[#6d4c41] text-center py-2">本趟尚未完成靠岸任務，快打開人物圖鑑複習後再次啟航吧！</div>`;
+            } else {
+                logEl.innerHTML = stats.logs.map((l, idx) => `
+                    <div class="p-2 rounded-lg border ${l.ok ? 'bg-green-50 border-green-300' : 'bg-amber-50 border-amber-300'}">
+                        <span class="font-black text-[#3e2723]">${idx + 1}. 【${l.charName}】${l.region}</span>
+                        <span class="ml-1 font-bold ${l.ok ? 'text-[#22543d]' : 'text-[#b7791f]'}">${l.ok ? '✅ 文化事件完美化解' : '💡 已修正觀念'}</span>
+                        <div class="text-[#5d4037] mt-0.5">${l.note}</div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('resultOverlay').classList.remove('hidden');
+        }
+
+        function togglePause() {
+            if (gameMode === 'playing') {
+                gameMode = 'paused';
+                document.getElementById('pauseOverlay').classList.remove('hidden');
+            } else if (gameMode === 'paused') {
+                gameMode = 'playing';
+                document.getElementById('pauseOverlay').classList.add('hidden');
+            }
+        }
+
+        function returnToStart() {
+            gameMode = 'menu';
+            document.getElementById('pauseOverlay').classList.add('hidden');
+            document.getElementById('resultOverlay').classList.add('hidden');
+            document.getElementById('eventModal').classList.add('hidden');
+            document.getElementById('hudContainer').classList.add('hidden');
+            document.getElementById('controlHintBar').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden');
+            document.getElementById('dangerOverlay').classList.add('hidden');
+            document.getElementById('startOverlay').classList.remove('hidden');
+        }
+
+        function updateHUD() {
+            const hpPct = Math.max(0, Math.round(stats.hp));
+            const supPct = Math.max(0, Math.round(stats.supplies));
+            document.getElementById('hpText').textContent = `${hpPct}%`;
+            document.getElementById('hpBar').style.width = `${hpPct}%`;
+            document.getElementById('supplyText').textContent = `${supPct}%`;
+            document.getElementById('supplyBar').style.width = `${supPct}%`;
+            document.getElementById('missionProgressText').textContent = endlessMode ? `${stats.missionsDone} 趟` : `${stats.missionsDone} / 7`;
+            document.getElementById('dayText').textContent = `第 ${Math.floor(stats.elapsedSec / 6) + 1} 天`;
+            document.getElementById('scoreText').textContent = stats.score;
+
+            const danger = document.getElementById('dangerOverlay');
+            if ((hpPct <= 25 || supPct <= 25) && gameMode === 'playing') {
+                danger.classList.remove('hidden');
+            } else {
+                danger.classList.add('hidden');
+            }
+        }
+
+        /* ==========================================================================
+           7. 即時遊戲物理更新迴圈 (Update Loop)
+           ========================================================================== */
+        function updateGame(dt) {
+            if (gameMode !== 'playing') return;
+
+            const cfg = DIFFICULTY_CFG[difficulty];
+            stats.elapsedSec += dt;
+            stats.supplies -= cfg.supplyDrain * dt;
+            if (ship.shieldTimer > 0) ship.shieldTimer -= dt;
+            if (ship.hitFlash > 0) ship.hitFlash -= dt;
+            if (ship.speedBoost > 0) ship.speedBoost -= dt;
+            if (stats.wrongPortCooldown > 0) stats.wrongPortCooldown -= dt;
+
+            // 檢查生存失敗條件
+            if (stats.hp <= 0) {
+                stats.hp = 0;
+                updateHUD();
+                showEndScreen(false, '船體在颱風漩渦與文化衝突風暴中受損嚴重！記得多閃避漩渦並正確靠岸修復船隻喔！');
+                return;
+            }
+            if (stats.supplies <= 0) {
+                stats.supplies = 0;
+                updateHUD();
+                showEndScreen(false, '船上的補給糧食耗盡了！航行時別忘了收集海上的「📦 補給木箱」並快速抵達港口喔！');
+                return;
+            }
+
+            // 船隻移動控制（鍵盤優先，否則跟隨滑鼠/觸控目標）
+            let moveX = 0, moveY = 0;
+            if (keys['arrowup'] || keys['w']) moveY -= 1;
+            if (keys['arrowdown'] || keys['s']) moveY += 1;
+            if (keys['arrowleft'] || keys['a']) moveX -= 1;
+            if (keys['arrowright'] || keys['d']) moveX += 1;
+
+            const baseSpeed = ship.speedBoost > 0 ? 0.36 : 0.23;
+
+            if (moveX !== 0 || moveY !== 0) {
+                const len = Math.hypot(moveX, moveY);
+                ship.vx = (moveX / len) * baseSpeed;
+                ship.vy = (moveY / len) * baseSpeed;
+            } else if (pointerActive) {
+                const dx = pointerTarget.x - ship.x;
+                const dy = pointerTarget.y - ship.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 0.012) {
+                    ship.vx = (dx / dist) * baseSpeed;
+                    ship.vy = (dy / dist) * baseSpeed;
+                } else {
+                    ship.vx *= 0.8;
+                    ship.vy *= 0.8;
+                }
+            } else {
+                ship.vx *= 0.88;
+                ship.vy *= 0.88;
+            }
+
+            ship.x = Math.max(0.04, Math.min(0.95, ship.x + ship.vx * dt));
+            ship.y = Math.max(0.14, Math.min(0.94, ship.y + ship.vy * dt));
+
+            if (Math.hypot(ship.vx, ship.vy) > 0.02) {
+                ship.angle = Math.atan2(ship.vy, ship.vx);
+                if (Math.random() < 0.45) {
+                    particles.push({
+                        x: ship.x - Math.cos(ship.angle) * 0.02,
+                        y: ship.y - Math.sin(ship.angle) * 0.02,
+                        vx: (Math.random() - 0.5) * 0.02,
+                        vy: (Math.random() - 0.5) * 0.02,
+                        color: ship.speedBoost > 0 ? '#fef08a' : 'rgba(255,255,255,0.65)',
+                        size: 2.5,
+                        life: 0.4
+                    });
+                }
+            }
+
+            // 更新危險物件（漩渦與文化誤解迷霧）
+            hazards.forEach(h => {
+                h.x += h.vx * dt;
+                h.y += h.vy * dt;
+                h.rot += dt * (h.type === 'whirlpool' ? 4.2 : 1.1);
+
+                // 在海面範圍內反彈
+                if (h.x < 0.05 || h.x > 0.54) h.vx *= -1;
+                if (h.y < 0.18 || h.y > 0.92) h.vy *= -1;
+
+                const dist = Math.hypot(ship.x - h.x, ship.y - h.y);
+                if (dist < h.r + 0.024 && ship.shieldTimer <= 0) {
+                    playHitSound();
+                    ship.hitFlash = 0.45;
+                    ship.shieldTimer = 1.3;
+                    stats.hp -= 16;
+                    spawnParticles(ship.x, ship.y, '#fc8181', 16);
+                    if (h.type === 'mist') {
+                        addFloatingText(ship.x, ship.y - 0.03, '💢 文化誤解衝突！-16 耐力', '#feb2b2');
+                        showToast('💢 撞上「文化誤解迷霧」！快送先驅者靠岸溝通化解誤會！', 'error');
+                    } else {
+                        addFloatingText(ship.x, ship.y - 0.03, '🌀 捲入颱風漩渦！-16 耐力', '#90cdf4');
+                    }
+                    // 彈開船隻
+                    const pushA = Math.atan2(ship.y - h.y, ship.x - h.x);
+                    ship.x = Math.max(0.05, Math.min(0.94, ship.x + Math.cos(pushA) * 0.05));
+                    ship.y = Math.max(0.15, Math.min(0.93, ship.y + Math.sin(pushA) * 0.05));
+                }
+            });
+
+            // 更新補給箱與順風氣流
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                const item = collectibles[i];
+                item.bob += dt * 3.5;
+                if (Math.hypot(ship.x - item.x, ship.y - item.y) < 0.038) {
+                    playPickupSound();
+                    if (item.type === 'crate') {
+                        stats.supplies = Math.min(100, stats.supplies + 20);
+                        stats.score += 30;
+                        spawnParticles(item.x, item.y, '#f6e05e', 12);
+                        addFloatingText(item.x, item.y - 0.02, '📦 +20 補給糧食！', '#fef08a');
+                    } else {
+                        ship.speedBoost = 4.5;
+                        stats.score += 20;
+                        spawnParticles(item.x, item.y, '#90cdf4', 12);
+                        addFloatingText(item.x, item.y - 0.02, '💨 順風加速！', '#bee3f8');
+                    }
+                    collectibles.splice(i, 1);
+                    setTimeout(() => { if (gameMode === 'playing') spawnCollectible(); }, 1800);
+                }
+            }
+
+            // 檢查靠岸港口碰撞
+            if (stats.currentChar) {
+                for (const p of PORTS) {
+                    const dist = Math.hypot(ship.x - p.nx, ship.y - p.ny);
+                    if (dist < 0.048) {
+                        if (p.id === stats.currentChar.portId) {
+                            triggerPortEvent(stats.currentChar, p);
+                            return;
+                        } else if (stats.wrongPortCooldown <= 0) {
+                            playWrongSound();
+                            stats.wrongPortCooldown = 2.2;
+                            stats.supplies = Math.max(1, stats.supplies - 8);
+                            ship.hitFlash = 0.35;
+                            const correctPort = PORTS.find(pt => pt.id === stats.currentChar.portId);
+                            addFloatingText(p.nx, p.ny - 0.04, `❌ 走錯港口囉！-8 糧食`, '#feb2b2');
+                            showToast(
+                                `❌ 這裡是【${p.name}（${p.region}）】！但【${stats.currentChar.name}】主要活動在「${stats.currentChar.regionLabel}」，快往【${correctPort.name}】航行！`,
+                                'error'
+                            );
+                            // 稍微推回海上
+                            ship.x -= 0.06;
+                        }
+                    }
+                }
+            }
+
+            // 更新粒子與飄字
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const pt = particles[i];
+                pt.x += pt.vx * dt;
+                pt.y += pt.vy * dt;
+                pt.life -= dt;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y -= 0.035 * dt;
+                ft.life -= dt;
+                if (ft.life <= 0) floatingTexts.splice(i, 1);
+            }
+
+            updateHUD();
+        }
+
+        /* ==========================================================================
+           8. 動態復古海圖與船隻渲染引擎 (Render Loop)
+           ========================================================================== */
+        let waveTime = 0;
+
+        function renderGame(dt) {
+            waveTime += dt;
+            ctx.clearRect(0, 0, viewW, viewH);
+
+            // 1. 海洋漸層背景
+            const seaGrad = ctx.createLinearGradient(0, 0, viewW, viewH);
+            seaGrad.addColorStop(0, '#1a4966');
+            seaGrad.addColorStop(0.55, '#256687');
+            seaGrad.addColorStop(1, '#183f57');
+            ctx.fillStyle = seaGrad;
+            ctx.fillRect(0, 0, viewW, viewH);
+
+            // 2. 復古航海經緯線與動態波浪
+            ctx.strokeStyle = 'rgba(255, 248, 231, 0.09)';
+            ctx.lineWidth = 1;
+            const gridStep = Math.max(60, Math.min(viewW, viewH) / 7);
+            for (let x = 0; x < viewW; x += gridStep) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, viewH); ctx.stroke();
+            }
+            for (let y = 0; y < viewH; y += gridStep) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(viewW, y); ctx.stroke();
+            }
+
+            // 動態海浪紋
+            ctx.strokeStyle = 'rgba(190, 227, 248, 0.16)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 14; i++) {
+                const wx = ((i * 137 + waveTime * 18) % (viewW + 100)) - 50;
+                const wy = ((i * 89) % (viewH - 80)) + 60;
+                ctx.beginPath();
+                ctx.moveTo(wx, wy);
+                ctx.quadraticCurveTo(wx + 12, wy - 5, wx + 24, wy);
+                ctx.quadraticCurveTo(wx + 36, wy + 5, wx + 48, wy);
+                ctx.stroke();
+            }
+
+            // 3. 繪製復古羅盤水印（左下角）
+            drawCompass(viewW * 0.10, viewH * 0.84, Math.min(viewW, viewH) * 0.065);
+
+            // 4. 繪製臺灣本島（手繪復古羊皮紙島嶼質感）
+            ctx.save();
+            ctx.beginPath();
+            TAIWAN_POLY.forEach((p, idx) => {
+                const px = p[0] * viewW;
+                const py = p[1] * viewH;
+                if (idx === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.closePath();
+
+            // 淺海海岸線光暈
+            ctx.shadowColor = 'rgba(144, 205, 244, 0.45)';
+            ctx.shadowBlur = 18;
+            const landGrad = ctx.createLinearGradient(viewW * 0.55, viewH * 0.15, viewW * 0.85, viewH * 0.9);
+            landGrad.addColorStop(0, '#c8d99c');
+            landGrad.addColorStop(0.5, '#dfcfa3');
+            landGrad.addColorStop(1, '#b7ce8a');
+            ctx.fillStyle = landGrad;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#6d4c41';
+            ctx.stroke();
+
+            // 中央山脈小圖案
+            ctx.strokeStyle = 'rgba(109, 76, 65, 0.45)';
+            ctx.lineWidth = 2;
+            const mountains = [[0.71, 0.42], [0.69, 0.53], [0.67, 0.64]];
+            mountains.forEach(([mx, my]) => {
+                const x = mx * viewW, y = my * viewH;
+                ctx.beginPath();
+                ctx.moveTo(x - 10, y + 6);
+                ctx.lineTo(x, y - 9);
+                ctx.lineTo(x + 10, y + 6);
+                ctx.stroke();
+            });
+
+            // 島嶼文字標示
+            ctx.fillStyle = 'rgba(62, 39, 35, 0.55)';
+            ctx.font = `900 ${Math.max(13, Math.min(20, viewW * 0.018))}px "Noto Sans TC"`;
+            ctx.textAlign = 'center';
+            ctx.fillText('福爾摩沙', viewW * 0.70, viewH * 0.50);
+            ctx.fillText('臺灣', viewW * 0.70, viewH * 0.54);
+            ctx.restore();
+
+            // 5. 繪製 5 大通商港口（帶動態波紋）
+            PORTS.forEach(p => {
+                const px = p.nx * viewW;
+                const py = p.ny * viewH;
+                const pulse = (Math.sin(waveTime * 3.5 + px) + 1) * 0.5;
+
+                // 港口範圍光環
+                ctx.beginPath();
+                ctx.arc(px, py, 16 + pulse * 9, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 248, 231, 0.18)';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(px, py, 14, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#fff8e7';
+                ctx.stroke();
+
+                // 圖示
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.icon, px, py + 1);
+
+                // 港口名稱牌
+                const label = `${p.name}(${p.region})`;
+                ctx.font = `900 ${Math.max(11, Math.min(13, viewW * 0.014))}px "Noto Sans TC"`;
+                const tw = ctx.measureText(label).width + 12;
+                const lx = px + (p.nx > 0.78 ? -tw / 2 - 14 : 0);
+                const ly = py - 24;
+                ctx.fillStyle = 'rgba(44, 29, 25, 0.88)';
+                roundRect(ctx, lx - tw / 2, ly - 10, tw, 20, 7);
+                ctx.fill();
+                ctx.strokeStyle = '#f6c453';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#fff8e7';
+                ctx.fillText(label, lx, ly + 1);
+            });
+
+            // 6. 繪製補給箱與順風氣流
+            collectibles.forEach(item => {
+                const ix = item.x * viewW;
+                const iy = item.y * viewH + Math.sin(item.bob) * 4;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(ix, iy, 16, 0, Math.PI * 2);
+                ctx.fillStyle = item.type === 'crate' ? 'rgba(246, 224, 94, 0.28)' : 'rgba(144, 205, 244, 0.30)';
+                ctx.fill();
+                ctx.font = '20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(item.type === 'crate' ? '📦' : '💨', ix, iy);
+                ctx.restore();
+            });
+
+            // 7. 繪製危險物件（颱風漩渦 & 文化誤解迷霧）
+            hazards.forEach(h => {
+                const hx = h.x * viewW;
+                const hy = h.y * viewH;
+                const hr = h.r * Math.min(viewW, viewH);
+                ctx.save();
+                ctx.translate(hx, hy);
+                ctx.rotate(h.rot);
+
+                if (h.type === 'whirlpool') {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, hr * 1.15, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(13, 42, 61, 0.55)';
+                    ctx.fill();
+                    ctx.strokeStyle = '#90cdf4';
+                    ctx.lineWidth = 2.5;
+                    for (let k = 0; k < 3; k++) {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, hr * (0.4 + k * 0.25), k * 2, k * 2 + 2.2);
+                        ctx.stroke();
+                    }
+                    ctx.rotate(-h.rot);
+                    ctx.font = '16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌀', 0, 0);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, hr * 1.2, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(128, 40, 80, 0.45)';
+                    ctx.fill();
+                    ctx.strokeStyle = '#feb2b2';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.rotate(-h.rot);
+                    ctx.font = '17px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('💢', 0, 0);
+                }
+                ctx.restore();
+            });
+
+            // 8. 繪製粒子
+            particles.forEach(pt => {
+                ctx.globalAlpha = Math.max(0, pt.life);
+                ctx.fillStyle = pt.color;
+                ctx.beginPath();
+                ctx.arc(pt.x * viewW, pt.y * viewH, pt.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+
+            // 9. 繪製玩家的福爾摩沙探險帆船
+            drawPlayerShip(ship.x * viewW, ship.y * viewH);
+
+            // 10. 若正在觸控/滑鼠拖曳，畫出柔和航線指引點
+            if (pointerActive && gameMode === 'playing') {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 236, 179, 0.55)';
+                ctx.setLineDash([4, 4]);
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(ship.x * viewW, ship.y * viewH);
+                ctx.lineTo(pointerTarget.x * viewW, pointerTarget.y * viewH);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(pointerTarget.x * viewW, pointerTarget.y * viewH, 7, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 236, 179, 0.45)';
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 11. 繪製即時飄字回饋
+            floatingTexts.forEach(ft => {
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, ft.life);
+                ctx.font = '900 14px "Noto Sans TC"';
+                ctx.textAlign = 'center';
+                ctx.strokeStyle = '#2c1d19';
+                ctx.lineWidth = 3.5;
+                ctx.strokeText(ft.text, ft.x * viewW, ft.y * viewH);
+                ctx.fillStyle = ft.color;
+                ctx.fillText(ft.text, ft.x * viewW, ft.y * viewH);
+                ctx.restore();
+            });
+        }
+
+        function drawPlayerShip(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // 無敵護盾光環
+            if (ship.shieldTimer > 0) {
+                ctx.beginPath();
+                ctx.arc(0, 0, 26, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(104, 211, 145, 0.22)';
+                ctx.fill();
+                ctx.strokeStyle = '#68d391';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+            }
+
+            // 受傷紅閃
+            const flash = ship.hitFlash > 0 && Math.floor(ship.hitFlash * 20) % 2 === 0;
+
+            // 船身（面向左右翻轉，保持帆船直立可愛易懂）
+            const facingLeft = Math.cos(ship.angle) < -0.1;
+            ctx.scale(facingLeft ? -1 : 1, 1);
+
+            // 船體木頭
+            ctx.beginPath();
+            ctx.moveTo(-18, 4);
+            ctx.lineTo(20, 4);
+            ctx.lineTo(13, 14);
+            ctx.lineTo(-14, 14);
+            ctx.closePath();
+            ctx.fillStyle = flash ? '#fc8181' : '#8d5524';
+            ctx.fill();
+            ctx.strokeStyle = '#3e2723';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 船桅
+            ctx.strokeStyle = '#4e342e';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 4);
+            ctx.lineTo(0, -20);
+            ctx.stroke();
+
+            // 白色大風帆
+            ctx.beginPath();
+            ctx.moveTo(2, -18);
+            ctx.quadraticCurveTo(17, -9, 2, 1);
+            ctx.closePath();
+            ctx.fillStyle = ship.speedBoost > 0 ? '#fef08a' : '#fffdf5';
+            ctx.fill();
+            ctx.strokeStyle = '#7d5a44';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // 頂部小紅旗
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.lineTo(-9, -17);
+            ctx.lineTo(0, -14);
+            ctx.closePath();
+            ctx.fillStyle = '#c53030';
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawCompass(cx, cy, r) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.globalAlpha = 0.25;
+            ctx.strokeStyle = '#ffecb3';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, -r * 0.85); ctx.lineTo(5, 0); ctx.lineTo(0, r * 0.85); ctx.lineTo(-5, 0); ctx.closePath();
+            ctx.fillStyle = '#ffecb3'; ctx.fill();
+            ctx.font = '900 11px "Noto Sans TC"';
+            ctx.textAlign = 'center';
+            ctx.fillText('北 N', 0, -r - 6);
+            ctx.restore();
+        }
+
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+
+        // 主動畫迴圈
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const dt = Math.min(0.05, (timestamp - lastTime) / 1000 || 0.016);
+            lastTime = timestamp;
+            updateGame(dt);
+            renderGame(dt);
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* ==========================================================================
+           9. 人物圖鑑（自動暫停航行，隨點隨看）
+           ========================================================================== */
+        let currentEncycId = 'mackay';
+
+        function openEncyclopedia(charId = null) {
+            playTone(540, 0.05, 'sine', 0.12);
+            prevModeBeforeEncyc = gameMode;
+            if (gameMode === 'playing') gameMode = 'paused';
+            if (charId) currentEncycId = charId;
+            renderEncyclopedia();
+            document.getElementById('encyclopediaModal').classList.remove('hidden');
+        }
+
+        function closeEncyclopedia() {
+            playTone(460, 0.05, 'sine', 0.12);
+            document.getElementById('encyclopediaModal').classList.add('hidden');
+            if (prevModeBeforeEncyc === 'playing' && document.getElementById('pauseOverlay').classList.contains('hidden')) {
+                gameMode = 'playing';
+            }
+        }
+
+        function selectEncycChar(id) {
+            playTone(580, 0.05, 'sine', 0.12);
+            currentEncycId = id;
+            renderEncyclopedia();
+        }
+
+        function renderEncyclopedia() {
+            const tabsEl = document.getElementById('encycTabs');
+            tabsEl.innerHTML = CHARACTERS.map(c => {
+                const active = c.id === currentEncycId;
+                return `
+                    <button onclick="selectEncycChar('${c.id}')" class="p-1.5 rounded-xl border-2 flex flex-col items-center transition cursor-pointer ${active ? 'bg-[#d69e2e] border-[#3e2723] scale-105 shadow-md' : 'bg-white/85 border-[#d7ccc8] hover:bg-white'}">
+                        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border border-[#7d5a44] bg-white">${c.svg}</div>
+                        <span class="text-xs font-black text-[#3e2723] mt-1">${c.name}</span>
+                    </button>
+                `;
+            }).join('');
+
+            const c = CHARACTERS.find(item => item.id === currentEncycId);
+            document.getElementById('encycDetailCard').innerHTML = `
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                    <div class="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-4 border-[#7d5a44] shadow-md flex-shrink-0 bg-white">${c.svg}</div>
+                    <div class="flex-grow text-center sm:text-left">
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
+                            <h3 class="text-xl sm:text-2xl font-black text-[#3e2723]">${c.name}</h3>
+                            <span class="text-xs font-bold text-[#6d4c41]">(${c.enName})</span>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 text-xs font-bold mb-2.5">
+                            <span class="bg-[#efe4cc] text-[#3e2723] px-2.5 py-0.5 rounded-full">🎓 ${c.role}</span>
+                            <span class="bg-[#e6f4ea] text-[#22543d] px-2.5 py-0.5 rounded-full">📍 ${c.regionLabel}</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-[#3e2723] leading-relaxed bg-[#fffdf7] p-3 rounded-xl border border-[#e0d3b8] font-medium mb-2.5">${c.summary}</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left text-xs">
+                            <div class="bg-[#eef2ff] p-2.5 rounded-xl border border-[#c3dafe]">
+                                <div class="font-black text-[#4338ca] mb-0.5">🌟 對臺灣發展與人民的影響</div>
+                                <p class="text-[#3e2723] leading-relaxed">${c.impact}</p>
+                            </div>
+                            <div class="bg-[#fff5f5] p-2.5 rounded-xl border border-[#fed7d7]">
+                                <div class="font-black text-[#9b2c2c] mb-0.5">🤝 文化碰撞、誤解與逐漸了解</div>
+                                <p class="text-[#3e2723] leading-relaxed">${c.cultureStory}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 啟動畫面初始化
+        window.onload = function () {
+            resizeCanvas();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
